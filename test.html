@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Thapa Sensei - Official JLPT N5 Full Mock Test</title>
+    <!-- Firebase Libraries (v8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+        
+        html, body {
+            background-color: #f0f3f8;
+            min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .welcome-card { 
+            background: white; 
+            width: 100%; 
+            max-width: 1150px; 
+            border-radius: 12px; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.12); 
+            overflow: hidden; 
+            border: 1px solid #e0e0e0; 
+        }
+        
+        .header { background: linear-gradient(135deg, #b71c1c, #d32f2f); color: white; padding: 22px 18px; text-align: center; }
+        .instructor-name { font-size: 30px; font-weight: 900; color: #ffeb3b; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); margin-bottom: 4px; }
+        .class-title { font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 8px; }
+        .contact-info { font-size: 13px; background: rgba(255, 255, 255, 0.2); display: inline-block; padding: 4px 14px; border-radius: 20px; font-weight: 500; }
+        
+        .card-body { padding: 20px; }
+        .student-info { background: #fff8e1; border: 1px solid #ffe082; border-left: 6px solid #f57f17; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .info-item { font-size: 14px; color: #333; }
+        .info-item strong { color: #b71c1c; }
+
+        .name-input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; text-align: left; }
+        .name-input-group label { font-size: 14px; font-weight: bold; color: #b71c1c; }
+        .name-input-group input { padding: 12px; font-size: 15px; border: 2px solid #ef9a9a; border-radius: 6px; outline: none; width: 100%; }
+
+        .instructions-title { font-size: 17px; color: #b71c1c; font-weight: 700; margin-bottom: 12px; border-bottom: 2px solid #e0e0e0; padding-bottom: 6px; }
+        .instructions-list { margin-left: 20px; margin-bottom: 20px; color: #444; line-height: 1.6; }
+        .instructions-list li { margin-bottom: 8px; font-size: 14px; }
+        
+        .agreement { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-size: 14px; color: #222; cursor: pointer; background: #fafafa; padding: 10px; border-radius: 6px; border: 1px solid #eee; }
+        .agreement input { width: 18px; height: 18px; accent-color: #d32f2f; flex-shrink: 0; }
+
+        .start-btn { width: 100%; background-color: #2e7d32; color: white; padding: 14px; border: none; border-radius: 8px; font-size: 17px; font-weight: bold; cursor: pointer; text-align: center; }
+        .start-btn:disabled { background-color: #cccccc; cursor: not-allowed; }
+
+        #loginScreen { display: block; }
+        #adminScreen { display: none; }
+        #landingScreen { display: none; }
+        #examScreen { display: none; }
+        #resultScreen { display: none; }
+        
+        .exam-header-bar { display: flex; justify-content: space-between; align-items: center; background: #b71c1c; color: white; padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; font-weight: bold; }
+        .timer-box { background: #d32f2f; color: white; padding: 5px 12px; border-radius: 4px; font-size: 15px; border: 1px solid #ff8a80; }
+        .review-mode-banner { background: #ff9800; color: white; text-align: center; padding: 8px; border-radius: 6px; font-weight: bold; margin-bottom: 15px; animation: blink 1.5s infinite; }
+
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        .exam-layout-grid { display: grid; grid-template-columns: 65px 1fr; gap: 15px; }
+
+        .left-palette-sidebar { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 8px 4px; height: fit-content; text-align: center; }
+        .palette-label { font-size: 11px; font-weight: bold; color: #b71c1c; margin-bottom: 6px; display: block; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+        
+        .palette-legend { font-size: 9px; color: #444; margin-bottom: 8px; display: flex; flex-direction: column; gap: 3px; text-align: center; background: #fff; padding: 4px; border-radius: 4px; border: 1px solid #eee; }
+        .legend-item { display: flex; align-items: center; justify-content: center; gap: 3px; }
+        .legend-box { width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+
+        .palette-grid { display: grid; grid-template-columns: 1fr; gap: 6px; max-height: 480px; overflow-y: auto; padding-right: 2px; }
+        .palette-btn { width: 100%; height: 36px; border: 1px solid #ccc; background: white; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; justify-content: center; align-items: center; }
+        .palette-btn.answered { background: #4caf50; color: white; border-color: #388e3c; } 
+        .palette-btn.current { border: 2.5px solid #ff9800; background: #fff3e0; font-weight: 800; color: #d84315; } 
+
+        .right-question-area { min-height: 400px; width: 100%; }
+        .question-box { background: #fafafa; border: 1px solid #e0e0e0; padding: 18px; border-radius: 8px; margin-bottom: 15px; }
+        .section-badge { display: inline-block; background: #ffebee; color: #b71c1c; padding: 6px 12px; border-radius: 4px; font-size: 14px; font-weight: bold; margin-bottom: 15px; border-left: 4px solid #d32f2f; }
+        .mondai-title { font-size: 15px; font-weight: bold; color: #333; margin-bottom: 12px; background: #eef5fc; padding: 8px 12px; border-radius: 4px; border-left: 3px solid #1976d2; }
+
+        /* 🎧 AUDIO PLAYER STYLING FIX */
+        .jlpt-audio-box { background: #fff; border: 2px solid #d32f2f; border-radius: 8px; padding: 15px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center; }
+        .audio-warning-note { background: #ffebee; color: #c62828; border: 1px dashed #ef9a9a; padding: 10px; border-radius: 6px; font-size: 12.5px; font-weight: bold; margin-bottom: 12px; text-align: left; }
+        .jlpt-audio-btn { background: #2e7d32; color: white; border: none; padding: 12px 24px; border-radius: 20px; font-size: 15px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: background 0.2s; }
+        .jlpt-audio-btn:hover { background: #1b5e20; }
+        .jlpt-audio-btn.playing { background: #ff9800; }
+        .jlpt-audio-btn.blocked { background: #757575 !important; cursor: not-allowed !important; opacity: 0.8; }
+
+        .passage-box { background: #fff; border: 1px solid #bbdefb; border-left: 5px solid #1976d2; padding: 15px; border-radius: 6px; font-size: 16px; line-height: 2.3; margin-bottom: 15px; white-space: pre-wrap; }
+        
+        .q-container { background: white; border: 1px solid #e0e0e0; padding: 18px; border-radius: 8px; margin-bottom: 18px; }
+        .q-header-title { font-size: 15px; font-weight: 800; color: #b71c1c; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+        
+        /* 🍣 FURIGANA (RUBY) FIXED STYLING */
+        .q-text { font-size: 18px; font-weight: bold; color: #222; margin-bottom: 12px; line-height: 2.4; }
+        ruby { font-size: 18px; font-weight: bold; display: inline-ruby; }
+        rt { font-size: 11px; color: #333333; font-weight: normal; line-height: 1; text-align: center; }
+
+        .q-text b u {
+            background-color: #fff59d;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #b71c1c;
+            font-weight: 900;
+            text-decoration-thickness: 2px;
+        }
+
+        .q-img { max-width: 100%; height: auto; max-height: 320px; border-radius: 6px; margin: 10px auto; display: block; border: 1px solid #ccc; }
+
+        .options-group { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .option-label { display: flex; align-items: center; gap: 12px; background: #f9f9f9; padding: 12px 16px; border: 1.5px solid #ddd; border-radius: 8px; cursor: pointer; font-size: 16px; transition: all 0.15s ease; }
+        .option-label:hover { background: #ffebee; border-color: #ef9a9a; }
+        .option-label input { width: 18px; height: 18px; flex-shrink: 0; accent-color: #d32f2f; }
+
+        .nav-buttons { display: flex; justify-content: space-between; gap: 12px; margin-top: 15px; }
+        .nav-btn { background: #d32f2f; color: white; border: none; padding: 12px 22px; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; }
+        .nav-btn:disabled { background: #ccc; cursor: not-allowed; }
+        #finishSecBtn { background: #ff9800; }
+        #submitExamBtn { background: #2e7d32; display: none; }
+
+        .student-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .student-table th, .student-table td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
+        .student-table th { background: #b71c1c; color: white; }
+        .action-btn-del { background: #d32f2f; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        .action-btn-reset { background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+
+        .scorecard-box { background: #ffffff; border: 2px solid #b71c1c; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .score-header { text-align: center; border-bottom: 2px solid #e0e0e0; padding-bottom: 15px; margin-bottom: 15px; }
+        
+        .eval-status-box { text-align: center; margin-top: 10px; padding: 12px; border-radius: 8px; font-weight: 800; font-size: 16px; }
+        .eval-pass { background: #e8f5e9; color: #2e7d32; border: 1.5px solid #a5d6a7; }
+        .eval-fail { background: #ffebee; color: #c62828; border: 1.5px solid #ef9a9a; }
+
+        .sec-score-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .sec-score-table th, .sec-score-table td { border: 1px solid #cfd8dc; padding: 10px; font-size: 14px; }
+        .sec-score-table th { background: #f0f4f8; color: #b71c1c; text-align: left; }
+
+        .error-msg { color: #d32f2f; font-size: 13px; margin-top: 8px; font-weight: bold; display: none; text-align: left; }
+
+        @media (max-width: 768px) {
+            body { padding: 5px; }
+            .card-body { padding: 12px 10px; }
+            .instructor-name { font-size: 24px; }
+            .class-title { font-size: 15px; }
+            .exam-layout-grid { grid-template-columns: 50px 1fr; gap: 8px; }
+            .q-container { padding: 12px 8px; }
+            .option-label { font-size: 14px; padding: 10px 12px; }
+            .nav-btn { padding: 10px 14px; font-size: 13px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- GLOBAL AUDIO PLAYER -->
+    <audio id="globalJlptAudio" preload="auto"></audio>
+
+    <div class="welcome-card">
+        <div class="header">
+            <div class="instructor-name">Thapa Sensei</div>
+            <div class="class-title">JLPT N5 Official Mock Test System</div>
+            <div class="contact-info">📞 Contact / Viber / WhatsApp: <strong>9867222929</strong></div>
+        </div>
+
+        <!-- 1. STUDENT LOGIN SCREEN -->
+        <div class="card-body" id="loginScreen">
+            <div class="instructions-title" style="margin-top:0;">विद्यार्थी लगइन (Student Login)</div>
+            <p style="font-size: 14px; color: #555; margin-bottom: 18px;">तपाईंको **नाम** र शिक्षकले दिनुभएको **Exam Access Code** हालेर लगइन गर्नुहोस्。</p>
+
+            <div class="name-input-group">
+                <label for="studentNameInput">विद्यार्थीको पूरा नाम (Student Name):</label>
+                <input type="text" id="studentNameInput" placeholder="तपाईंको नाम (उदा: Ram Thapa)...">
+            </div>
+
+            <div class="name-input-group">
+                <label for="studentCodeInput">Exam Access Code:</label>
+                <input type="text" id="studentCodeInput" placeholder="तपाईंको Access Code (उदा: N5-8821)..." style="text-transform: uppercase;">
+            </div>
+
+            <div id="studentLoginError" class="error-msg"></div>
+
+            <button class="start-btn" style="margin-top: 10px;" onclick="handleStudentLogin()">Login & Start JLPT N5 Test</button>
+        </div>
+
+        <!-- 2. TEACHER CONTROL PANEL -->
+        <div class="card-body" id="adminScreen">
+            <div class="instructions-title" style="margin-top:0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <span>👨‍🏫 Teacher Control Panel (JLPT N5)</span>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="startTeacherPracticeExam()" style="background:#0288d1; color:white; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">▶️ Start Test as Teacher</button>
+                    <button onclick="logoutAdmin()" style="background:#d32f2f; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Logout Panel</button>
+                </div>
+            </div>
+
+            <div style="background:#ffebee; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid #ef9a9a;">
+                <h4 style="color:#b71c1c; margin-bottom:10px;">➕ नयाँ विद्यार्थी जोड्नुहोस् र म्याद सकिने गते (Expiry Date) छान्नुहोस्:</h4>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    <input type="text" id="newStudentName" placeholder="विद्यार्थीको नाम (उदा: Ram Thapa)..." style="flex:2; min-width:180px; padding:10px; border:1px solid #ccc; border-radius:4px;">
+                    
+                    <div style="flex:1; min-width:150px; display:flex; flex-direction:column;">
+                        <label style="font-size:11px; color:#b71c1c; font-weight:bold;">म्याद सकिने गते:</label>
+                        <input type="date" id="expiryDatePicker" style="padding:8px; border:1px solid #ccc; border-radius:4px; font-weight:bold; color:#b71c1c; background:white;">
+                    </div>
+
+                    <button onclick="addNewStudent()" style="background:#2e7d32; color:white; border:none; padding:10px 18px; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:auto;">Generate Code</button>
+                </div>
+            </div>
+
+            <h4 style="color:#333; margin-bottom:10px;">📋 दर्ता भएका विद्यार्थीहरू र म्याद (Expiry Status):</h4>
+            <div style="overflow-x:auto;">
+                <table class="student-table">
+                    <thead>
+                        <tr>
+                            <th>विद्यार्थीको नाम</th>
+                            <th>Access Code</th>
+                            <th>Expiry Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. LANDING SCREEN -->
+        <div class="card-body" id="landingScreen">
+            <div class="student-info">
+                <div class="info-item"><strong>नाम:</strong> <span id="loggedInNameDisplay"></span></div>
+                <div class="info-item"><strong>Test Level:</strong> JLPT N5 Official Format</div>
+                <div class="info-item"><strong>Total Duration:</strong> 90 Minutes + Reviews</div>
+                <div class="info-item"><strong>Total Questions:</strong> 111 Questions</div>
+            </div>
+
+            <div class="instructions-title">JLPT N5 परीक्षा समय र नियमहरू</div>
+            <ul class="instructions-list">
+                <li><strong>Section 1: 言語知識 (文字・語彙)</strong> — समय: 20 मिनेट (Q1 - Q52) + (1 मिनेट Review)</li>
+                <li><strong>Section 2: 言語知識 (文法)・読解</strong> — समय: 40 मिनेट (Q53 - Q87) + (1 मिनेट Review)</li>
+                <li><strong>Section 3: 聴解 (Listening)</strong> — समय: 30 मिनेट (Q88 - Q111) + (1 मिनेट Review)</li>
+                <li style="color:#c62828;"><strong>⚠️ Listening Audio Rule:</strong> अडियो १ पटक मात्र बज्नेछ। Stop थिचेमा वा पूरा बजेपछि अडियो ब्लक हुनेछ।</li>
+                <li><strong>📝 Review Phase:</strong> प्रत्येक सेक्सनको समय सकिएपछि १ मिनेटको Review Phase हुनेछ।</li>
+            </ul>
+
+            <label class="agreement">
+                <input type="checkbox" id="agreeCheck" onclick="validateForm()">
+                <span><strong>स्वीकृति:</strong> मैले माथि उल्लेखित नियमहरू पढेँ र बुझेँ。</span>
+            </label>
+
+            <button id="startBtn" class="start-btn" disabled onclick="startExam()">Start JLPT N5 Test (परीक्षा सुरु गर्नुहोस्)</button>
+        </div>
+
+        <!-- 4. EXAM SCREEN -->
+        <div class="card-body" id="examScreen">
+            <div class="exam-header-bar">
+                <div id="studentDisplay">युजर: </div>
+                <div class="timer-box" id="timer">20:00</div>
+            </div>
+
+            <div id="reviewBanner" class="review-mode-banner" style="display: none;">
+                ⏱️ REVIEW PHASE (1 Minute Remaining) - तपाईं उत्तरहरू परिवर्तन गर्न सक्नुहुन्छ!
+            </div>
+
+            <div class="exam-layout-grid">
+                <div class="left-palette-sidebar">
+                    <span class="palette-label" id="paletteSectionLabel">Sec 1</span>
+                    <div class="palette-legend">
+                        <div class="legend-item"><span class="legend-box" style="background:#4caf50;"></span>Ans</div>
+                        <div class="legend-item"><span class="legend-box" style="background:white; border:1px solid #ccc;"></span>Unans</div>
+                    </div>
+                    <div class="palette-grid" id="paletteGrid"></div>
+                </div>
+
+                <div class="right-question-area">
+                    <div class="question-box">
+                        <div class="section-badge" id="sectionBadge">Section 1</div>
+                        <div class="mondai-title" id="mondaiTitle">問題1</div>
+
+                        <!-- LISTENING AUDIO CONTAINER -->
+                        <div id="audioPlayerContainer" style="display: none;">
+                            <div class="jlpt-audio-box">
+                                <div class="audio-warning-note">
+                                    ⚠️ <strong>Warning:</strong> अडियो १ पटक मात्र बज्नेछ। Stop थिचिसक्नुभयो भने अडियो ब्लक हुनेछ!
+                                </div>
+                                <button class="jlpt-audio-btn" id="playAudioBtn" onclick="toggleJlptAudio()">
+                                    🔊 Play Listening Audio
+                                </button>
+                                <button class="jlpt-audio-btn" id="pauseAudioBtn" onclick="stopAndBlockAudio()" style="background:#d32f2f; display:none;">
+                                    ⏹️ Stop & Block Audio
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- PASSAGE READING CONTAINER -->
+                        <div id="passageContainer" class="passage-box" style="display: none;"></div>
+
+                        <div id="questionsContainer"></div>
+                    </div>
+
+                    <div class="nav-buttons">
+                        <button class="nav-btn" id="prevBtn" onclick="prevStep()">Previous</button>
+                        <button class="nav-btn" id="nextBtn" onclick="nextStep()">Next</button>
+                        <button class="nav-btn" id="finishSecBtn" onclick="triggerReviewPhase()">Finish Section ➡️</button>
+                        <button class="nav-btn" id="submitExamBtn" onclick="submitExam()">Submit Final Exam</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. RESULT SCREEN -->
+        <div class="card-body" id="resultScreen">
+            <div class="scorecard-box">
+                <div class="score-header">
+                    <h3 style="color:#b71c1c; margin-bottom:5px;">Japanese-Language Proficiency Test (JLPT N5)</h3>
+                    <h4 style="color:#555; font-size:15px; margin-bottom:8px;">Official Score & Evaluation Report</h4>
+                    <p style="font-size:13.5px; color:#444;">Candidate: <strong id="resultStudentName"></strong> | Date: <span id="resultDate"></span></p>
+                    <div id="resultPassBadge"></div>
+                </div>
+
+                <h4 style="color:#333; margin-bottom:8px;">📊 Sectional Score Breakdown:</h4>
+                <div style="overflow-x:auto;">
+                    <table class="sec-score-table">
+                        <thead>
+                            <tr>
+                                <th>Section Title</th>
+                                <th>Score Obtained</th>
+                                <th>Sectional Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="secScoreTbody"></tbody>
+                        <tfoot>
+                            <tr style="background:#fff8e1; font-weight:bold;">
+                                <td style="text-align:right; color:#b71c1c;">TOTAL SCORE:</td>
+                                <td id="finalTotalScore" style="color:#d32f2f; font-size:17px;">0 / 180</td>
+                                <td id="overallStatusText">---</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <h4 style="color:#333; margin-bottom:10px;">📝 Question Review & Answers:</h4>
+            <div id="reviewContainer"></div>
+            <button class="start-btn" style="margin-top: 20px;" onclick="location.reload()">Restart Exam</button>
+        </div>
+    </div>
+
+<script>
+    /* FIREBASE CONFIGURATION */
+    const firebaseConfig = {
+        apiKey: "AIzaSyAy7-3Zub5hTO1g-QE6mOLyskHSWyeMGwU",
+        authDomain: "thapasenseijft.firebaseapp.com",
+        databaseURL: "https://thapasenseijft-default-rtdb.firebaseio.com",
+        projectId: "thapasenseijft",
+        storageBucket: "thapasenseijft.firebasestorage.app",
+        messagingSenderId: "127012464750",
+        appId: "1:127012464750:web:b15d215fae778fc02e1e7f",
+        measurementId: "G-MX88P03WGZ"
+    };
+    
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    const db = firebase.database();
+
+    const TEACHER_ADMIN_PASS = "sensei1997"; 
+
+    function getDeviceId() {
+        let deviceId = localStorage.getItem('thapa_jlpt_device_id');
+        if (!deviceId) {
+            deviceId = 'DEV-' + Math.random().toString(36).substring(2, 9) + Date.now();
+            localStorage.setItem('thapa_jlpt_device_id', deviceId);
+        }
+        return deviceId;
+    }
+
+    window.onload = function() {
+        const defaultDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        document.getElementById('expiryDatePicker').value = defaultDate.toISOString().split('T')[0];
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('admin')) {
+            openAdminPanelWithPrompt();
+        }
+    };
+
+    function openAdminPanelWithPrompt() {
+        const pass = prompt("👨‍🏫 Teacher Control Panel लगइन गर्न Password राख्नुहोस्:");
+        if (pass === TEACHER_ADMIN_PASS) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('adminScreen').style.display = 'block';
+            loadAdminStudentTable();
+        } else if (pass !== null) {
+            alert("❌ गलत Password!");
+            window.location.href = window.location.pathname;
+        }
+    }
+
+    function startTeacherPracticeExam() {
+        loggedInStudentName = "Thapa Sensei (Teacher)";
+        document.getElementById('adminScreen').style.display = 'none';
+        document.getElementById('landingScreen').style.display = 'block';
+        document.getElementById('loggedInNameDisplay').innerText = loggedInStudentName;
+    }
+
+    function logoutAdmin() {
+        window.location.href = window.location.pathname;
+    }
+
+    function addNewStudent() {
+        const nameInput = document.getElementById('newStudentName');
+        const expiryDateVal = document.getElementById('expiryDatePicker').value;
+        const name = nameInput.value.trim();
+        
+        if (!name) { alert("कृपया विद्यार्थीको नाम राख्नुहोस्!"); return; }
+        if (!expiryDateVal) { alert("कृपया म्याद सकिने गते छानेर राख्नुहोस्!"); return; }
+
+        const code = 'N5-' + Math.floor(1000 + Math.random() * 9000);
+        const selectedDate = new Date(expiryDateVal + "T23:59:59");
+        const expiryTimestamp = selectedDate.getTime();
+
+        db.ref('students/' + code).set({
+            name: name, code: code, boundDeviceId: null, expiryTimestamp: expiryTimestamp, createdDate: new Date().toLocaleDateString()
+        }, (error) => {
+            if (!error) {
+                nameInput.value = "";
+                alert(`🎉 विद्यार्थी सफलतापुर्वक दर्ता भयो!\n\nनाम: ${name}\nAccess Code: ${code}\nम्याद सकिने गते: ${selectedDate.toLocaleDateString()}`);
+            }
+        });
+    }
+
+    function loadAdminStudentTable() {
+        db.ref('students').on('value', (snapshot) => {
+            const tbody = document.getElementById('studentTableBody');
+            tbody.innerHTML = "";
+            const students = snapshot.val();
+            if (!students) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">कुनै पनि विद्यार्थी दर्ता छैन।</td></tr>`;
+                return;
+            }
+
+            const now = Date.now();
+            Object.keys(students).forEach(code => {
+                const stu = students[code];
+                const expDateStr = stu.expiryTimestamp ? new Date(stu.expiryTimestamp).toLocaleDateString() : "No Expiry";
+                const isExpired = stu.expiryTimestamp && (now > stu.expiryTimestamp);
+
+                let statusText = "";
+                if (isExpired) {
+                    statusText = `<span style="color:#d32f2f; font-weight:bold;">⛔ Expired</span>`;
+                } else if (stu.boundDeviceId) {
+                    statusText = `<span style="color:#2e7d32; font-weight:bold;">🔒 Active (${stu.boundDeviceId.substring(0,6)}...)</span>`;
+                } else {
+                    statusText = `<span style="color:#ff9800; font-weight:bold;">🔓 Unused</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr style="${isExpired ? 'background:#ffebee;' : ''}">
+                        <td><strong>${stu.name}</strong></td>
+                        <td><code style="background:#eee; padding:3px 6px; color:#b71c1c;">${stu.code}</code></td>
+                        <td><small>${expDateStr}</small></td>
+                        <td>${statusText}</td>
+                        <td>
+                            <button class="action-btn-reset" onclick="resetStudentDevice('${stu.code}')">Device Reset</button>
+                            <button class="action-btn-del" onclick="deleteStudent('${stu.code}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+    }
+
+    function resetStudentDevice(code) {
+        if (confirm(`के तपाईं यो Access Code (${code}) को Device Lock हटाउन चाहनुहुन्छ?`)) {
+            db.ref('students/' + code + '/boundDeviceId').set(null);
+        }
+    }
+
+    function deleteStudent(code) {
+        if (confirm(`के तपाईं यो विद्यार्थी हटाउन निश्चित हुनुहुन्छ?`)) {
+            db.ref('students/' + code).remove();
+        }
+    }
+
+    let loggedInStudentName = "";
+
+    function handleStudentLogin() {
+        const nameInput = document.getElementById('studentNameInput').value.trim();
+        const codeInput = document.getElementById('studentCodeInput').value.trim().toUpperCase();
+        const errorBox = document.getElementById('studentLoginError');
+
+        if (!nameInput || !codeInput) {
+            errorBox.style.display = 'block';
+            errorBox.innerHTML = "❌ कृपया पूरा नाम र Access Code दुवै हाल्नुहोस्!";
+            return;
+        }
+
+        if (nameInput.toLowerCase() === "thapa sensei" && codeInput === "1997") {
+            errorBox.style.display = 'none';
+            openAdminPanelWithPrompt();
+            return;
+        }
+
+        db.ref('students/' + codeInput).once('value').then((snapshot) => {
+            if (!snapshot.exists()) {
+                errorBox.style.display = 'block';
+                errorBox.innerHTML = "❌ अमान्य Access Code!";
+                return;
+            }
+
+            const student = snapshot.val();
+            if (student.name.toLowerCase() !== nameInput.toLowerCase()) {
+                errorBox.style.display = 'block';
+                errorBox.innerHTML = "❌ नाम र Access Code म्याच भएन!";
+                return;
+            }
+
+            const now = Date.now();
+            if (student.expiryTimestamp && now > student.expiryTimestamp) {
+                errorBox.style.display = 'block';
+                errorBox.innerHTML = `⛔ **Access Code Expired:** म्याद सकिएको छ।`;
+                return;
+            }
+
+            const currentDeviceId = getDeviceId();
+            if (!student.boundDeviceId) {
+                db.ref('students/' + codeInput + '/boundDeviceId').set(currentDeviceId);
+            } else if (student.boundDeviceId !== currentDeviceId) {
+                errorBox.style.display = 'block';
+                errorBox.innerHTML = `🚫 यो Access Code अर्कै डिभाइसमा दर्ता भइसकेको छ।`;
+                return;
+            }
+
+            errorBox.style.display = 'none';
+            loggedInStudentName = student.name;
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('landingScreen').style.display = 'block';
+            document.getElementById('loggedInNameDisplay').innerText = loggedInStudentName;
+        });
+    }
+
+    function validateForm() {
+        const check = document.getElementById('agreeCheck').checked;
+        document.getElementById('startBtn').disabled = !check;
+    }
+
+    /* ALL QUESTIONS DATASET */
+    const examSteps = [
+        /* SECTION 1: 言語知識 (文字・語彙) - Q1 to Q52 */
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 0, qText: "1. あの <b><u>先生</u></b>は わかいです。", imgSrc: null, options: ["1. せんせえ", "2. せんせい", "3. せんせん", "4. せんせ"], answer: 1 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 1, qText: "2. あした えいがかんは <b><u>休み</u></b>です。", imgSrc: null, options: ["1. やつみ", "2. やづみ", "3. やすみ", "4. やずみ"], answer: 2 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 2, qText: "3. この セーターは <b><u>二千九百</u></b>えんでした。", imgSrc: null, options: ["1. にっせんきゅうひゃく", "2. にせんきゅうひやく", "3. にっせんくうひやく", "4. にせんきゅうびゃく"], answer: 3 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 3, qText: "4. <b><u>毎日</u></b> こうえんを さんぽします。", imgSrc: null, options: ["1. まえにち", "2. まいにち", "3. めえにち", "4. めいにち"], answer: 1 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 4, qText: "5. すみません、お<b><u>金</u></b>を わすれました。", imgSrc: null, options: ["1. おかね", "2. おがね", "3. おかぬ", "4. おがぬ"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 5, qText: "6. <b><u>右</u></b>がわに としょかんが あります。", imgSrc: null, options: ["1. みぎ", "2. みき", "3. ひたり", "4. ひだり"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 6, qText: "7. この しごとは <b><u>時間</u></b>が かかります。", imgSrc: null, options: ["1. しかん", "2. じっかん", "3. じがん", "4. じかん"], answer: 3 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 7, qText: "8. はしの うえで <b><u>電車</u></b>が とまりました。", imgSrc: null, options: ["1. てんしゃ", "2. てんじゃ", "3. でんしゃ", "4. でんじゃ"], answer: 2 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 8, qText: "9. この なかで いちばん <b><u>安い</u></b>のは どれですか。", imgSrc: null, options: ["1. たかい", "2. はやい", "3. やすい", "4. ちいさい"], answer: 2 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 9, qText: "10. あねに こどもが <b><u>生</u></b>まれました。", imgSrc: null, options: ["1. おまれました", "2. うまれました", "3. ゆまれました", "4. いまれました"], answer: 1 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 10, qText: "11. らいげつ <b><u>友</u></b>だちが にほんに あそびに <ruby>来<rt>き</rt></ruby>ます。", imgSrc: null, options: ["1. どもだち", "2. とむだち", "3. ともだち", "4. どむだち"], answer: 2 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 11, qText: "12. いしかわさんは いつも えいごのCDを <b><u>気</u></b>いています。", imgSrc: null, options: ["1. かいて", "2. あいて", "3. ひいて", "4. きいて"], answer: 3 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 12, qText: "13. この クラスは <b><u>女の子</u></b>が おおいです。", imgSrc: null, options: ["1. おんなのこ", "2. おなのこ", "3. おんなのこう", "4. おなのこう"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 13, qText: "14. <b><u>水よう日</u></b>の じゅぎょうは ありません。", imgSrc: null, options: ["1. もくようび", "2. もくようぴ", "3. すいようび", "4. すいようぴ"], answer: 2 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 14, qText: "15. すみません、もっと <b><u>長い</u></b> コートは ありませんか。", imgSrc: null, options: ["1. ながい", "2. たかい", "3. ひくい", "4. みじかい"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 15, qText: "16. きのうは えきに <b><u>人</u></b>が たくさん いました。", imgSrc: null, options: ["1. にん", "2. ひと", "3. じん", "4. しと"], answer: 1 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 16, qText: "17. この くるまは <b><u>四年</u></b>まえに かいました。", imgSrc: null, options: ["1. よねんまえ", "2. よんねんまえ", "3. よねんまい", "4. よんねんまい"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題1 ＿の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 17, qText: "18. わたしの いぬは <b><u>耳</u></b>が ちゃいろです。", imgSrc: null, options: ["1. あし", "2. め", "3. みみ", "4. からだ"], answer: 2 },
+
+        // Mondai 2: 表記 (Q19 - Q30)
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題2 ＿の ことばは どう かきますか。", type: "single", qIdx: 18, qText: "19. ことしの なつは <b><u>やま</u></b>へ いきます。", imgSrc: null, options: ["1. ヨ", "2. 出", "3. 川", "4. 山"], answer: 3 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題2 ＿の ことばは どう かきますか。", type: "single", qIdx: 19, qText: "20. ほっかいどうは にほんの <b><u>きた</u></b>に あります。", imgSrc: null, options: ["1. 東", "2. 西", "3. 南", "4. 北"], answer: 3 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題2 ＿の ことばは どう かきますか。", type: "single", qIdx: 20, qText: "21. この テーブルは <b><u>ごまんえん</u></b>でした。", imgSrc: null, options: ["1. 五方円", "2. 五万円", "3. 五万内", "4. 五方内"], answer: 1 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題2 ＿の ことばは どう かきますか。", type: "single", qIdx: 21, qText: "22. へやに <b><u>しゃわー</u></b>は ありますか。", imgSrc: null, options: ["1. ツェワー", "2. シャウー", "3. ツャワー", "4. シャワー"], answer: 3 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題2 ＿の ことばは どう かきますか。", type: "single", qIdx: 22, qText: "23. となりの いえの ねこは <b><u>あし</u></b>が くろいです。", imgSrc: null, options: ["1. 足", "2. 目", "3. 手", "4. 耳"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題2 ＿の ことばは どう かきますか。", type: "single", qIdx: 23, qText: "24. えいがかんで おもしろい えいがを <b><u>み</u></b>ました。", imgSrc: null, options: ["1. 見ました", "2. 具ました", "3. 目ました", "4. 貝ました"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題2 ＿の ことばは どう かきますか。", type: "single", qIdx: 24, qText: "25. わたしの すんでいる まちは <b><u>みせ</u></b>が すくないです。", imgSrc: null, options: ["1. 居", "2. 庁", "3. 店", "4. 痁"], answer: 2 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題2 ＿の ことばは どう かきますか。", type: "single", qIdx: 25, qText: "26. こんど、いっしょに <b><u>れすとらん</u></b>に <ruby>行<rt>い</rt></ruby>きませんか。", imgSrc: null, options: ["1. レストラツ", "2. レトスラン", "3. レストラン", "4. レストラソ"], answer: 2 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題2 ＿の ことばは どう かきますか。", type: "single", qIdx: 26, qText: "27. さとうさんは いろいろな <b><u>みち</u></b>を しっています。", imgSrc: null, options: ["1. 道", "2. 運", "3. 通", "4. 進"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題2 ＿の ことばは どう かきますか。", type: "single", qIdx: 27, qText: "28. この へやに <b><u>はい</u></b>らないで ください。", imgSrc: null, options: ["1. 人らない", "2. 入らない", "3. 大らない", "4. メらない"], answer: 1 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題2 ＿の ことばは どう かきますか。", type: "single", qIdx: 28, qText: "29. きょうしつは 9かいですから、<b><u>えれべーたー</u></b>に のりましょう。", imgSrc: null, options: ["1. エレベークー", "2. エレベーター", "3. エルベーター", "4. エルベークー"], answer: 1 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題2 ＿の ことばは どう かきますか。", type: "single", qIdx: 29, qText: "30. スーパーで ケーキを <b><u>か</u></b>ってきたよ。", imgSrc: null, options: ["1. 買ってきた", "2. 貰ってきた", "3. 真ってきた", "4. 員ってきた"], answer: 0 },
+
+        // Mondai 3: 文脈規定 (Q31 - Q45)
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 30, qText: "31. タクシーを ( ＿＿＿ ) ください。", imgSrc: null, options: ["1. のって", "2. よんで", "3. とって", "4. あって"], answer: 1 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 31, qText: "32. いもうとは あかい ぼうしを ( ＿＿＿ )。", imgSrc: null, options: ["1. とっています", "2. きています", "3. かかっています", "4. かぶっています"], answer: 3 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 32, qText: "33. 「さようなら。( ＿＿＿ ) あした。」", imgSrc: null, options: ["1. もう", "2. どうも", "3. また", "4. もっと"], answer: 2 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 33, qText: "34. めが わるいですから、( ＿＿＿ )を かけます。", imgSrc: null, options: ["1. ペン", "2. コート", "3. ぼうし", "4. めがね"], answer: 3 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 34, qText: "35. わたしは あさ シャワーを ( ＿＿＿ )。", imgSrc: null, options: ["1. はいります", "2. あびます", "3. いれます", "4. たべます"], answer: 1 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 35, qText: "36. まいにち ( ＿＿＿ ) にほんごの べんきょうを しますか。", imgSrc: null, options: ["1. いくつ", "2. いかが", "3. どれくらい", "4. どちらか"], answer: 2 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 36, qText: "37. はしを ( ＿＿＿ )、かいものに いきます。", imgSrc: null, options: ["1. とって", "2. わたって", "3. いって", "4. のぼって"], answer: 1 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 37, qText: "38. この ( ＿＿＿ )は、あまいですか。", imgSrc: null, options: ["1. くだもの", "2. ふく", "3. かさ", "4. ふうとう"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 38, qText: "39. かぜで ( ＿＿＿ )に いきました。", imgSrc: null, options: ["1. がっこう", "2. としょかん", "3. びょういん", "4. きょうしつ"], answer: 2 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 39, qText: "40. こうえんの ( ＿＿＿ )に きっさてんが あります。", imgSrc: null, options: ["1. そば", "2. した", "3. なか", "4. となり"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 40, qText: "41. さいふを ( ＿＿＿ )かもしれません。", imgSrc: null, options: ["1. だした", "2. わたした", "3. かった", "4. なくした"], answer: 3 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 41, qText: "42. げんかんで くつを ( ＿＿＿ ) ください。", imgSrc: null, options: ["1. ぬいで", "2. はいって", "3. とって", "4. ならべて"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 42, qText: "43. こうえんで ( ＿＿＿ )の しゃしんを とりました。", imgSrc: null, options: ["1. とり", "2. はな", "3. いけ", "4. ともだち"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 43, qText: "44. A「ひるごはんを いっしょに たべませんか。」<br>B「はい。でも、( ＿＿＿ )から たべたいです。」", imgSrc: null, options: ["1. でんわして", "2. コピーして", "3. そうじして", "4. かいものして"], answer: 2 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題3 （ ＿＿＿ ）に なにを いれますか。", type: "single", qIdx: 44, qText: "45. ( ＿＿＿ )ですね。でんきを つけましょう。", imgSrc: null, options: ["1. くらい", "2. あぶない", "3. しずか", "4. げんき"], answer: 0 },
+
+        // Mondai 4: 類義 (Q46 - Q52)
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題4 ＿の ぶんと だいたい おなじ いみの ぶんが あります。", type: "single", qIdx: 45, qText: "46. <b><u>あしたは いい てんきでしょう。</u></b>", imgSrc: null, options: ["1. あしたは あめが ふるでしょう。", "2. あしたは くもりでしょう。", "3. あしたは ゆきでしょう。", "4. あしたは はれでしょう。"], answer: 3 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題4 ＿の ぶんと だいたい おなじ いみの ぶんが あります。", type: "single", qIdx: 46, qText: "47. <b><u>わたしは くだものを かいました。</u></b>", imgSrc: null, options: ["1. わたしは ノートや えんぴつを かいました。", "2. わたしは さかなや にくを かいました。", "3. わたしは りんごや みかんを かいました。", "4. わたしは さらや コップを かいました。"], answer: 2 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題4 ＿の ぶんと だいたい おなじ いみの ぶんが あります。", type: "single", qIdx: 47, qText: "48. <b><u>こばやしさんは すずきさんに ほんを かりました。</u></b>", imgSrc: null, options: ["1. すずきさんは こばやしさんに ほんを かしました。", "2. こばやしさんは すずきさんに ほんを かしました。", "3. すずきさんは こばやしさんに ほんを かえしました。", "4. こばやしさんは すずきさんに ほんを かえしました。"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題4 ＿の ぶんと だいたい おなじ いみの ぶんが あります。", type: "single", qIdx: 48, qText: "49. <b><u>10がつ 11にちは わたしの たんじょうびです。</u></b>", imgSrc: null, options: ["1. わたしは 10がつ 11にちに おぼえました。", "2. わたしは 10がつ 11にちに つくりました。", "3. わたしは 10がつ 11にちに こまりました。", "4. わたしは 10がつ 11にちに うまれました。"], answer: 3 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題4 ＿の ぶんと だいたい おなじ いみの ぶんが あります。", type: "single", qIdx: 49, qText: "50. <b><u>あのひとは たなかさんの おじさんです。</u></b>", imgSrc: null, options: ["1. たなかさんの おかあさんの おとうさんは あのひとです。", "2. たなかさんの おかあさんの おにいさんは あのひとです。", "3. たなかさんの おかあさんの いもうとさんは あのひとです。", "4. たなかさんの おかあさんの おかあさんは あのひとです。"], answer: 1 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題4 ＿の ぶんと だいたい おなじ いみの ぶんが あります。", type: "single", qIdx: 50, qText: "51. <b><u>きのう そうじを しました。</u></b>", imgSrc: null, options: ["1. きのう へやを きれいに しました。", "2. きのう ふくを あらいました。", "3. きのう ふろに はいりました。", "4. きのう さらを ならべました。"], answer: 0 },
+        { sectionId: 1, sectionName: "Section 1: 言語知識 (文字・語彙)", mondaiTitle: "問題4 ＿の ぶんと だいたい おなじ いみの ぶんが あります。", type: "single", qIdx: 51, qText: "52. <b><u>あさって、しごとを やすみます。</u></b>", imgSrc: null, options: ["1. あさって、かいしゃで はたらきます。", "2. あさって、かいしゃに いきます。", "3. あさって、しごとを しません。", "4. あさって、しごとを します。"], answer: 2 },
+
+        /* SECTION 2: 言語知識 (文法)・読解 - Q53 to Q87 (FURIGANA FIXED) */
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題1 （ ＿＿＿ ）に なにを 入れますか。", type: "single", qIdx: 52, qText: "53. としょかんへ <ruby>本<rt>ほん</rt></ruby>を（ ＿＿＿ ）いきます。", imgSrc: null, options: ["1. かいに", "2. かしに", "3. かりに", "4. かえりに"], answer: 2 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題1 （ ＿＿＿ ）に なにを 入れますか。", type: "single", qIdx: 53, qText: "54. あした 10<ruby>時<rt>じ</rt></ruby>までに きょうしつへ（ ＿＿＿ ）ください。", imgSrc: null, options: ["1. きて", "2. きいて", "3. きくて", "4. きって"], answer: 0 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題1 （ ＿＿＿ ）に なにを 入れますか。", type: "single", qIdx: 54, qText: "55. わたしは <ruby>写真<rt>しゃしん</rt></ruby>を（ ＿＿＿ ）ことが <ruby>好<rt>す</rt></ruby>きです。", imgSrc: null, options: ["1. とりる", "2. とって", "3. とります", "4. とる"], answer: 3 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題1 （ ＿＿＿ ）に なにを 入れますか。", type: "single", qIdx: 55, qText: "56. <ruby>昨日<rt>きのう</rt></ruby>（ ＿＿＿ ）おすしは おいしかったです。", imgSrc: null, options: ["1. 食べました", "2. 食べた", "3. 食べて", "4. 食べる"], answer: 1 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題1 （ ＿＿＿ ）に なにを 入れますか。", type: "single", qIdx: 56, qText: "57. うさぎは <ruby>目<rt>め</rt></ruby>が（ ＿＿＿ ）、からだが <ruby>白<rt>しろ</rt></ruby>いです。", imgSrc: null, options: ["1. 赤いて", "2. 赤いくて", "3. 赤くて", "4. 赤って"], answer: 2 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題1 （ ＿＿＿ ）に なにを 入れますか。", type: "single", qIdx: 57, qText: "58. A：だれの ノートですか。<br>B：あ、<ruby>私<rt>わたし</rt></ruby>（ ＿＿＿ ）です。", imgSrc: null, options: ["1. が", "2. に", "3. の", "4. も"], answer: 2 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題1 （ ＿＿＿ ）に なにを 入れますか。", type: "single", qIdx: 58, qText: "59. A：ポケモン GO を（ ＿＿＿ ）おもいますか。<br>B：おもしろいと おもいます。", imgSrc: null, options: ["1. どう", "2. どれ", "3. どんな", "4. どうと"], answer: 0 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題1 （ ＿＿＿ ）に なにを 入れますか。", type: "single", qIdx: 59, qText: "60. あまい <ruby>食<rt>た</rt></ruby>べ<ruby>物<rt>もの</rt></ruby>は あまり（ ＿＿＿ ）。", imgSrc: null, options: ["1. すきです", "2. すきます", "3. すきじゃありません", "4. すきくありません"], answer: 2 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題1 （ ＿＿＿ ）に なにを 入れますか。", type: "single", qIdx: 60, qText: "61. （ ＿＿＿ ）きれいに かいてください。", imgSrc: null, options: ["1. もう", "2. まだ", "3. もっと", "4. きっと"], answer: 2 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題1 （ ＿＿＿ ）に なにを 入れますか。", type: "single", qIdx: 61, qText: "62. こんど、わたしの うちに あそびに（ ＿＿＿ ）。", imgSrc: null, options: ["1. いきませんか", "2. きませんか", "3. かえりませんか", "4. いりませんか"], answer: 1 },
+
+        // Mondai 2: カタカナ表記 (Q63 - Q72)
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題2 （ ＿＿＿ ）の ことばは カタカナで どう かきますか。", type: "single", qIdx: 62, qText: "63. （<b><u>ぱーてぃー</u></b>）へ いきました。", imgSrc: null, options: ["1. パーティー", "2. パーチィー", "3. ペーティー", "4. ペーチィー"], answer: 0 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題2 （ ＿＿＿ ）の ことばは カタカナで どう かきますか。", type: "single", qIdx: 63, qText: "64. （<b><u>こーひー</u></b>）を のみました。", imgSrc: null, options: ["1. ヨーヒー", "2. ユーヒー", "3. コーヒー", "4. ローヒー"], answer: 2 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題2 （ ＿＿＿ ）の ことばは カタカナで どう かきますか。", type: "single", qIdx: 64, qText: "65. （<b><u>てーぶる</u></b>）に ならべて ください。", imgSrc: null, options: ["1. チーベル", "2. テーベル", "3. チーブル", "4. テーブル"], answer: 3 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題2 （ ＿＿＿ ）の ことばは カタカナで どう かきますか。", type: "single", qIdx: 65, qText: "66. よやくを （<b><u>きゃんせる</u></b>）します。", imgSrc: null, options: ["1. ニョンセル", "2. キョンセル", "3. ニュンセル", "4. キャンセル"], answer: 3 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題2 （ ＿＿＿ ）の ことばは カタカナで どう かきますか。", type: "single", qIdx: 66, qText: "67. この （<b><u>えすかれーたー</u></b>）は ながいです。", imgSrc: null, options: ["1. コスカレーター", "2. エスカレーター", "3. コスカレークー", "4. エスカレークー"], answer: 1 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題2 （ ＿＿＿ ）の ことばは カタカナで どう かきますか。", type: "single", qIdx: 67, qText: "68. けさの （<b><u>にゅーす</u></b>）を みましたか。", imgSrc: null, options: ["1. ニューヌ", "2. ニョーヌ", "3. ニュース", "4. ニョース"], answer: 2 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題2 （ ＿＿＿ ）の ことばは カタカナで どう かきますか。", type: "single", qIdx: 68, qText: "69. 10（<b><u>ぺーじ</u></b>）を あけて ください。", imgSrc: null, options: ["1. ペーヅ", "2. ペーゾ", "3. ページ", "4. ペーヂ"], answer: 2 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題2 （ ＿＿＿ ）の ことばは カタカナで どう かきますか。", type: "single", qIdx: 69, qText: "70. その （<b><u>すいっち</u></b>）を おしてください。", imgSrc: null, options: ["1. スイッチ", "2. ヌイッチ", "3. スイッテ", "4. ヌイッテ"], answer: 0 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題2 （ ＿＿＿ ）の ことばは カタカナで どう かきますか。", type: "single", qIdx: 70, qText: "71. ここで （<b><u>たばこ</u></b>）を すわないで ください。", imgSrc: null, options: ["1. タバユ", "2. タバコ", "3. クバユ", "4. クバコ"], answer: 1 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題2 （ ＿＿＿ ）の ことばは カタカナで どう かきますか。", type: "single", qIdx: 71, qText: "72. （<b><u>すぷーん</u></b>）を とってください。", imgSrc: null, options: ["1. ヌプーン", "2. ヌプーソ", "3. スプーン", "4. スプーソ"], answer: 2 },
+
+        // Mondai 3: 漢字読み (Q73 - Q82)
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題3 ( ＿＿＿ )の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 72, qText: "73. ごご 6<ruby>時<rt>じ</rt></ruby>に (<b><u>駅</u></b>)で あいましょう。", imgSrc: null, options: ["1. もん", "2. かぎ", "3. えき", "4. いき"], answer: 2 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題3 ( ＿＿＿ )の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 73, qText: "74. <ruby>今日<rt>きょう</rt></ruby>から (<b><u>一週間</u></b>) でかけます。", imgSrc: null, options: ["1. いっちゅうかん", "2. いっちゅかん", "3. いっしゅうかん", "4. いっしゅかん"], answer: 2 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題3 ( ＿＿＿ )の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 74, qText: "75. コンビニで (<b><u>新聞</u></b>)を かいました。", imgSrc: null, options: ["1. しんぶん", "2. しんぷん", "3. しんむん", "4. しんうん"], answer: 0 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題3 ( ＿＿＿ )の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 75, qText: "76. (<b><u>来週</u></b>) きょうとに いきます。", imgSrc: null, options: ["1. れいしゅう", "2. らいしゅう", "3. せんしゅう", "4. ぜんしゅう"], answer: 1 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題3 ( ＿＿＿ )の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 76, qText: "77. (<b><u>会社</u></b>)で レポートを よみます。", imgSrc: null, options: ["1. かいしや", "2. かいしゃ", "3. がいしや", "4. がいしゃ"], answer: 1 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題3 ( ＿＿＿ )の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 77, qText: "78. <ruby>日本語<rt>にほんご</rt></ruby>を たくさん (<b><u>話し</u></b>)たいです。", imgSrc: null, options: ["1. ばなし", "2. はなし", "3. わなし", "4. ななし"], answer: 1 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題3 ( ＿＿＿ )の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 78, qText: "79. まいにち おんがくを (<b><u>聞き</u></b>)ます。", imgSrc: null, options: ["1. きき", "2. いき", "3. あき", "4. ひき"], answer: 0 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題3 ( ＿＿＿ )の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 79, qText: "80. きのう (<b><u>魚</u></b>)を たべました。", imgSrc: null, options: ["1. くに", "2. にく", "3. たなか", "4. さかな"], answer: 3 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題3 ( ＿＿＿ )の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 80, qText: "81. あの <ruby>先生<rt>せんせい</rt></ruby>は (<b><u>人気</u></b>)が あります。", imgSrc: null, options: ["1. じんき", "2. ひとき", "3. にんぎ", "4. にんき"], answer: 3 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題3 ( ＿＿＿ )の ことばは ひらがなで どう かきますか。", type: "single", qIdx: 81, qText: "82. この くるまは (<b><u>安い</u></b>)ですよ。", imgSrc: null, options: ["1. たかい", "2. ひろい", "3. やすい", "4. せまい"], answer: 2 },
+
+        // Mondai 4: 文の組み立て (★ Questions) (Q83 - Q87)
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題4 ( ★ )に はいる ものは どれですか。", type: "single", qIdx: 82, qText: "83. わたしは [ ＿＿＿ ] [ ＿＿＿ ] [ ★ ] [ ＿＿＿ ]。<br>(1.さかなが  2.さかなを  3.たべません  4.きらいですから)", imgSrc: null, options: ["1. さかなが", "2. さかなを", "3. たべません", "4. きらいですから"], answer: 0 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題4 ( ★ )に はいる ものは どれですか。", type: "single", qIdx: 83, qText: "84. すみません。くだもの [ ＿＿＿ ] [ ＿＿＿ ] [ ★ ] [ ＿＿＿ ]か。<br>(1.に  2.は  3.どこ  4.あります)", imgSrc: null, options: ["1. に", "2. は", "3. どこ", "4. あります"], answer: 0 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題4 ( ★ )に はいる ものは どれですか。", type: "single", qIdx: 84, qText: "85. にほんの たべものは [ ＿＿＿ ] [ ＿＿＿ ] [ ★ ] [ ＿＿＿ ]です。<br>(1.ですが  2.たかい  3.ちょっと  4.おいしい)", imgSrc: null, options: ["1. ですが", "2. たかい", "3. ちょっと", "4. おいしい"], answer: 2 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題4 ( ★ )に はいる ものは どれですか。", type: "single", qIdx: 85, qText: "86. おにいさんは どこ [ ＿＿＿ ] [ ＿＿＿ ] [ ★ ] [ ＿＿＿ ]か。<br>(1.だいがくで  2.います  3.べんきょうして  4.の)", imgSrc: null, options: ["1. だいがくで", "2. います", "3. べんきょうして", "4. の"], answer: 1 },
+        { sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題4 ( ★ )に はいる ものは どれですか。", type: "single", qIdx: 86, qText: "87. かいしゃ [ ＿＿＿ ] [ ＿＿＿ ] [ ★ ] [ ＿＿＿ ] いっていますか。<br>(1.で  2.へ  3.は  4.なに)", imgSrc: null, options: ["1. で", "2. へ", "3. は", "4. なに"], answer: 0 },
+
+        // Mondai 5: 読解 (Passages) (Q88 - Q92)
+        {
+            sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題5 ぶんしょうを よんで しつもんに こたえてください。", type: "reading_passage",
+            passageText: "A：「すみません、<ruby>山口<rt>やまぐち</rt></ruby> びょういんは どこ ですか。」\nB：「<ruby>山口<rt>やまぐち</rt></ruby> びょういん ですね。この <ruby>道<rt>みち</rt></ruby>を まっすぐ <ruby>行<rt>い</rt></ruby>って ください。ABC ぎんこうが ありますから、<ruby>右<rt>みぎ</rt></ruby>に まがって ください。10<ruby>分<rt>ぷん</rt></ruby>ぐらいで ほんやが あります。びょういんは ほんやの となりです。」\nA：「ここから、ABC ぎんこうまで どのぐらいですか。」\nB：「5<ruby>分<rt>ふん</rt></ruby>ぐらいです。」",
+            imgSrc: null,
+            subQuestions: [ { qIdx: 87, qText: "88. ただしい こたえは どれですか。", options: ["1. ここから びょういんまで 5分くらいです。", "2. びょういんは ABCぎんこうの となりです。", "3. びょういんは ABCぎんこうから 10分ぐらいです。", "4. ABCぎんこうから びょういんまで 5分ぐらいです。"], answer: 2 } ]
+        },
+        {
+            sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題5 ぶんしょうを よんで しつもんに こたえてください。", type: "reading_passage",
+            passageText: "<ruby>日本語<rt>にほんご</rt></ruby>の クラスは <ruby>月<rt>げつ</rt></ruby>よう<ruby>日<rt>び</rt></ruby>から <ruby>土<rt>ど</rt></ruby>よう<ruby>日<rt>び</rt></ruby> まで あります。<ruby>土<rt>ど</rt></ruby>よう<ruby>日<rt>び</rt></ruby>の あさの クラスは はじめての <ruby>人<rt>ひと</rt></ruby>の クラスです。ひるの クラスは <ruby>少<rt>すこ</rt></ruby>し べんきょうした <ruby>人<rt>ひと</rt></ruby>の クラスです。<ruby>金<rt>きん</rt></ruby>よう<ruby>日<rt>び</rt></ruby>の よるの クラスも はじめての <ruby>人<rt>ひと</rt></ruby>の クラスです。<ruby>木<rt>もく</rt></ruby>よう<ruby>日<rt>び</rt></ruby>の ひるは どちらの クラスも あります。",
+            imgSrc: null,
+            subQuestions: [ { qIdx: 88, qText: "89. はじめての 人の クラスは いつですか。", options: ["1. どようびの ひると きんようびの よると もくようびの ひるです。", "2. どようびの あさと もくようびの ひるです。", "3. どようびの ひると きんようびの よるです。", "4. どようびの あさと きんようびの よると もくようびの ひるです。"], answer: 3 } ]
+        },
+        {
+            sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題5 ぶんしょうを よんで しつもんに こたえてください。", type: "reading_passage",
+            passageText: "わたしの打ちは ソウルに あります。かぞくは <ruby>父<rt>ちち</rt></ruby>と <ruby>母<rt>はは</rt></ruby>と あねと おとうとです。<ruby>父<rt>ちち</rt></ruby>は いしゃです。<ruby>母<rt>はは</rt></ruby>は せんせいです。わたしは <ruby>父<rt>ちち</rt></ruby>と <ruby>母<rt>はは</rt></ruby>と おとうとと いっしょに すんでいます。あねは アメリカに います。",
+            imgSrc: null,
+            subQuestions: [ { qIdx: 89, qText: "90. わたしの うちに だれが いますか。", options: ["1. 父、母、あね、おとうと、わたし", "2. 父、母、おとうと、わたし", "3. 父、母、あね、わたし", "4. 父、母、あね、おとうと"], answer: 1 } ]
+        },
+        {
+            sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題5 ぶんしょうを よんで しつもんに こたえてください。", type: "reading_passage",
+            passageText: "このたてものの <ruby>中<rt>なか</rt></ruby>では しずかに <ruby>絵<rt>え</rt></ruby>を <ruby>見<rt>み</rt></ruby>てください。しゃしんを とらないでください。たばこも こまります。たばこは <ruby>外<rt>そと</rt></ruby>で すってください。<ruby>絵<rt>え</rt></ruby>を <ruby>見<rt>み</rt></ruby>ながら <ruby>食<rt>た</rt></ruby>べたり、<ruby>飲<rt>の</rt></ruby>んだり しないでください。",
+            imgSrc: null,
+            subQuestions: [ { qIdx: 90, qText: "91. あなたは この たてものの 中(なか)で 何を しますか。", options: ["1. 絵を 見ます。", "2. たばこを すいます。", "3. ごはんを 食べます。", "4. しゃしんを とります。"], answer: 0 } ]
+        },
+        {
+            sectionId: 2, sectionName: "Section 2: 言語知識 (文法)・読解", mondaiTitle: "問題5 ぶんしょうを よんで しつもんに こたえてください。", type: "reading_passage",
+            passageText: "まいにち あさは じかんが ありません。コンビニで パンを <ruby>買<rt>か</rt></ruby>って <ruby>食<rt>た</rt></ruby>べます。ひるも しごとが いそがしいですから、たいてい パンと ぎゅうにゅうです。ばんごはんは うちで <ruby>家族<rt>かぞく</rt></ruby>と いっしょに たべます。",
+            imgSrc: null,
+            subQuestions: [ { qIdx: 91, qText: "92. このひとは いつも どんな ものを 食べて いますか。", options: ["1. あさも よるも パンを 食べます。", "2. あさと ひるは パンで、よるは かぞくと いっしょに ごはんを 食べます。", "3. あさと ひるは パンで よるは ひとりで ごはんを 食べます。", "4. ひるも よるも パンを 食べます。"], answer: 1 } ]
+        },
+
+        /* SECTION 3: 聴解 (Listening) - Q93 to Q116 (AUDIO FIX WITH SAMPLE URL) */
+        {
+            sectionId: 3, sectionName: "Section 3: 聴解 (Listening)", mondaiTitle: "問題1 課題理解 (Task Comprehension)", type: "listening",
+            audioSrc: "l1_task.mp4",
+            subQuestions: [
+                { qIdx: 92, qText: "Question 1", imgSrc: "l1_q1.jpeg", options: ["1. 写真 1", "2. 写真 2", "3. 写真 3", "4. 写真 4"], answer: 0 },
+                { qIdx: 93, qText: "Question 2", imgSrc: null, options: ["1. １かい", "2. ２かい", "3. ３かい", "4. ４かい"], answer: 1 },
+                { qIdx: 94, qText: "Question 3", imgSrc: "l1_q3.jpg", options: ["1. 写真 1", "2. 写真 2", "3. 写真 3", "4. 写真 4"], answer: 2 },
+                { qIdx: 95, qText: "Question 4", imgSrc: "l1_q4.jpg", options: ["1. 写真 1", "2. 写真 2", "3. 写真 3", "4. 写真 4"], answer: 0 },
+                { qIdx: 96, qText: "Question 5", imgSrc: "l1_q5.jpg", options: ["1. 写真 1", "2. 写真 2", "3. 写真 3", "4. 写真 4"], answer: 1 },
+                { qIdx: 97, qText: "Question 6", imgSrc: "l1_q6.jpg", options: ["1. 写真 1", "2. 写真 2", "3. 写真 3", "4. 写真 4"], answer: 2 },
+                { qIdx: 98, qText: "Question 7", imgSrc: null, options: ["1. １ばん", "2. ３ばん", "3. ５ばん", "4. ７ばん"], answer: 1 }
+            ]
+        },
+        {
+            sectionId: 3, sectionName: "Section 3: 聴解 (Listening)", mondaiTitle: "問題2 ポイント理解 (Key Point Comprehension)", type: "listening",
+            audioSrc: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+            subQuestions: [
+                { qIdx: 99, qText: "Question 1", imgSrc: null, options: ["1. １じかん", "2. ２じかん", "3. ３じかん", "4. ４じかん"], answer: 1 },
+                { qIdx: 100, qText: "Question 2", imgSrc: null, options: ["1. ５１２－７７３３", "2. ５１２－７７３４", "3. ５１２－７７４３", "4. ５１２－７７４４"], answer: 2 },
+                { qIdx: 101, qText: "Question 3", imgSrc: null, options: ["1. りょうしん", "2. あね", "3. いもうと", "4. おとうと"], answer: 0 },
+                { qIdx: 102, qText: "Question 4", imgSrc: null, options: ["1. しょくどう", "2. きっさてん", "3. パンや", "4. きょうしつ"], answer: 1 },
+                { qIdx: 103, qText: "Question 5", imgSrc: null, options: ["1. くろい ボールペン", "2. あかい ボールペン", "3. くろい えんぴつ", "4. あかい えんぴつ"], answer: 0 },
+                { qIdx: 104, qText: "Question 6", imgSrc: null, options: ["1. こうえん", "2. えき", "3. きっさてん", "4. レストラン"], answer: 2 }
+            ]
+        },
+        {
+            sectionId: 3, sectionName: "Section 3: 聴解 (Listening)", mondaiTitle: "問題3 発話表現 (Verbal Expressions)", type: "listening",
+            audioSrc: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+            subQuestions: [
+                { qIdx: 105, qText: "Question 1", imgSrc: "l3_q1.jpg", options: ["1. 選択肢 1", "2. 選択肢 2", "3. 選択肢 3"], answer: 0 },
+                { qIdx: 106, qText: "Question 2", imgSrc: "l3_q2.jpg", options: ["1. 選択肢 1", "2. 選択肢 2", "3. 選択肢 3"], answer: 1 },
+                { qIdx: 107, qText: "Question 3", imgSrc: "l3_q3.jpg", options: ["1. 選択肢 1", "2. 選択肢 2", "3. 選択肢 3"], answer: 0 },
+                { qIdx: 108, qText: "Question 4", imgSrc: "l3_q4.jpg", options: ["1. 選択肢 1", "2. 選択肢 2", "3. 選択肢 3"], answer: 2 },
+                { qIdx: 109, qText: "Question 5", imgSrc: "l3_q5.jpg", options: ["1. 選択肢 1", "2. 選択肢 2", "3. 選択肢 3"], answer: 0 }
+            ]
+        },
+        {
+            sectionId: 3, sectionName: "Section 3: 聴解 (Listening)", mondaiTitle: "問題4 即時応答 (Quick Response)", type: "listening",
+            audioSrc: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+            subQuestions: [
+                { qIdx: 110, qText: "Question 1", imgSrc: null, options: ["1. 選択肢 1", "2. 選択肢 2", "3. 選択肢 3"], answer: 0 },
+                { qIdx: 111, qText: "Question 2", imgSrc: null, options: ["1. 選択肢 1", "2. 選択肢 2", "3. 選択肢 3"], answer: 1 },
+                { qIdx: 112, qText: "Question 3", imgSrc: null, options: ["1. 選択肢 1", "2. 選択肢 2", "3. 選択肢 3"], answer: 0 },
+                { qIdx: 113, qText: "Question 4", imgSrc: null, options: ["1. 選択肢 1", "2. 選択肢 2", "3. 選択肢 3"], answer: 2 },
+                { qIdx: 114, qText: "Question 5", imgSrc: null, options: ["1. 選択肢 1", "2. 選択肢 2", "3. 選択肢 3"], answer: 0 },
+                { qIdx: 115, qText: "Question 6", imgSrc: null, options: ["1. 選択肢 1", "2. 選択肢 2", "3. 選択肢 3"], answer: 1 }
+            ]
+        }
+    ];
+
+    let currentStep = 0;
+    let userAnswers = new Array(116).fill(null);
+    let currentSectionId = 1;
+    let timerInterval, mainTimeLeft = 20 * 60, isReviewPhase = false;
+    let audioState = { isPlaying: false, isBlocked: false };
+
+    const sectionDurations = { 1: 20 * 60, 2: 40 * 60, 3: 30 * 60 };
+
+    function startExam() {
+        document.getElementById('landingScreen').style.display = 'none';
+        document.getElementById('examScreen').style.display = 'block';
+        document.getElementById('studentDisplay').innerText = "युजर: " + loggedInStudentName;
+        
+        currentSectionId = 1;
+        mainTimeLeft = sectionDurations[1];
+        loadStep(currentStep); 
+        startSectionTimer();
+    }
+
+    function loadStep(stepIdx) {
+        currentStep = stepIdx;
+        const step = examSteps[stepIdx];
+        
+        document.getElementById('sectionBadge').innerText = step.sectionName;
+        document.getElementById('mondaiTitle').innerText = step.mondaiTitle;
+        
+        const qContainer = document.getElementById('questionsContainer');
+        const audioContainer = document.getElementById('audioPlayerContainer');
+        const passageContainer = document.getElementById('passageContainer');
+        
+        qContainer.innerHTML = "";
+        
+        if (step.type === 'listening') {
+            audioContainer.style.display = 'block';
+            resetAudioButtons();
+            let audioEl = document.getElementById('globalJlptAudio');
+            if (audioEl.src !== step.audioSrc) {
+                audioEl.src = step.audioSrc || "";
+                audioEl.load();
+                audioState.isBlocked = false;
+            }
+        } else {
+            audioContainer.style.display = 'none';
+        }
+
+        if (step.type === 'reading_passage' && step.passageText) {
+            passageContainer.style.display = 'block';
+            passageContainer.innerHTML = step.passageText;
+        } else {
+            passageContainer.style.display = 'none';
+        }
+
+        let subs = (step.type === 'single') ? [step] : step.subQuestions;
+        let htmlContent = "";
+
+        subs.forEach(q => {
+            htmlContent += `
+                <div class="q-container">
+                    <div class="q-header-title">Question ${q.qIdx + 1}</div>
+                    ${q.qText ? `<div class="q-text">${q.qText}</div>` : ''}
+                    ${q.imgSrc ? `<img src="${q.imgSrc}" class="q-img" onerror="this.style.display='none'">` : ''}
+                    <div class="options-group">
+                        ${q.options.map((opt, oIdx) => `
+                            <label class="option-label">
+                                <input type="radio" name="opt_${q.qIdx}" value="${oIdx}" ${userAnswers[q.qIdx] === oIdx ? 'checked' : ''} onclick="saveAnswer(${q.qIdx},${oIdx})">
+                                <span>${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+        qContainer.innerHTML = htmlContent;
+
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const finishSecBtn = document.getElementById('finishSecBtn');
+        const submitBtn = document.getElementById('submitExamBtn');
+
+        prevBtn.style.display = 'inline-block';
+        nextBtn.style.display = 'inline-block';
+        finishSecBtn.style.display = 'inline-block';
+        submitBtn.style.display = 'none';
+
+        if (stepIdx === 0 || examSteps[stepIdx - 1].sectionId !== step.sectionId) {
+            prevBtn.disabled = true;
+        } else {
+            prevBtn.disabled = false;
+        }
+
+        if (stepIdx === examSteps.length - 1) {
+            nextBtn.style.display = 'none';
+            if (currentSectionId === 3 && isReviewPhase) {
+                finishSecBtn.style.display = 'none';
+                submitBtn.style.display = 'inline-block';
+            }
+        }
+
+        updatePalette();
+    }
+
+    function resetAudioButtons() {
+        let playBtn = document.getElementById('playAudioBtn');
+        let pauseBtn = document.getElementById('pauseAudioBtn');
+        playBtn.style.display = 'inline-flex';
+        playBtn.className = "jlpt-audio-btn";
+        playBtn.innerText = "🔊 Play Listening Audio";
+        playBtn.onclick = toggleJlptAudio;
+        pauseBtn.style.display = 'none';
+        audioState.isPlaying = false;
+        audioState.isBlocked = false;
+    }
+
+    function saveAnswer(qIdx, optIdx) {
+        userAnswers[qIdx] = optIdx;
+        updatePalette();
+    }
+
+    function updatePalette() {
+        const grid = document.getElementById('paletteGrid');
+        grid.innerHTML = "";
+        document.getElementById('paletteSectionLabel').innerText = `Sec ${currentSectionId}`;
+
+        examSteps.forEach((st) => {
+            if (st.sectionId === currentSectionId) {
+                let qList = st.type === 'single' ? [st.qIdx] : st.subQuestions.map(s => s.qIdx);
+                qList.forEach(qIdx => {
+                    let btn = document.createElement('button');
+                    btn.className = "palette-btn";
+                    btn.innerText = qIdx + 1;
+                    if (userAnswers[qIdx] !== null) btn.classList.add('answered');
+
+                    let isCurrent = (st.type === 'single' && examSteps[currentStep].qIdx === qIdx) ||
+                                    ((st.type === 'listening' || st.type === 'reading_passage') && examSteps[currentStep].subQuestions && examSteps[currentStep].subQuestions.some(sub => sub.qIdx === qIdx));
+                    if (isCurrent) btn.classList.add('current');
+
+                    btn.onclick = () => jumpToQuestion(qIdx);
+                    grid.appendChild(btn);
+                });
+            }
+        });
+    }
+
+    function nextStep() {
+        if (currentStep < examSteps.length - 1 && examSteps[currentStep + 1].sectionId === currentSectionId) {
+            loadStep(currentStep + 1);
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 0 && examSteps[currentStep - 1].sectionId === currentSectionId) {
+            loadStep(currentStep - 1);
+        }
+    }
+
+    function jumpToQuestion(qIdx) {
+        for (let i = 0; i < examSteps.length; i++) {
+            let st = examSteps[i];
+            let match = (st.type === 'single' && st.qIdx === qIdx) || 
+                        ((st.type === 'listening' || st.type === 'reading_passage') && st.subQuestions && st.subQuestions.some(sub => sub.qIdx === qIdx));
+
+            if (match && st.sectionId === currentSectionId) {
+                loadStep(i);
+                break;
+            }
+        }
+    }
+
+    function toggleJlptAudio() {
+        if (audioState.isBlocked) return;
+
+        let audio = document.getElementById('globalJlptAudio');
+        let playBtn = document.getElementById('playAudioBtn');
+        let pauseBtn = document.getElementById('pauseAudioBtn');
+
+        audio.play().then(() => {
+            audioState.isPlaying = true;
+            playBtn.style.display = 'none';
+            pauseBtn.style.display = 'inline-flex';
+        }).catch(e => {
+            alert("❌ अडियो प्ले गर्न सकिएन! फाइल पाथ चेक गर्नुहोस्।");
+        });
+
+        audio.onended = function() {
+            stopAndBlockAudio();
+        };
+    }
+
+    function stopAndBlockAudio() {
+        let audio = document.getElementById('globalJlptAudio');
+        let playBtn = document.getElementById('playAudioBtn');
+        let pauseBtn = document.getElementById('pauseAudioBtn');
+
+        audio.pause();
+        audioState.isBlocked = true;
+        audioState.isPlaying = false;
+
+        pauseBtn.style.display = 'none';
+        playBtn.style.display = 'inline-flex';
+        playBtn.className = "jlpt-audio-btn blocked";
+        playBtn.innerText = "⛔ Audio Blocked (Finished)";
+        playBtn.onclick = null;
+    }
+
+    function startSectionTimer() {
+        clearInterval(timerInterval);
+        isReviewPhase = false;
+        document.getElementById('reviewBanner').style.display = 'none';
+
+        timerInterval = setInterval(() => {
+            if (mainTimeLeft <= 0) {
+                clearInterval(timerInterval);
+                triggerReviewPhase();
+                return;
+            }
+            mainTimeLeft--;
+            renderTimerText();
+        }, 1000);
+    }
+
+    function renderTimerText() {
+        let mins = Math.floor(mainTimeLeft / 60), secs = mainTimeLeft % 60;
+        document.getElementById('timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    function triggerReviewPhase() {
+        if (isReviewPhase) {
+            advanceToNextSection();
+            return;
+        }
+
+        clearInterval(timerInterval);
+        isReviewPhase = true;
+        mainTimeLeft = 1 * 60;
+        
+        const reviewBanner = document.getElementById('reviewBanner');
+        reviewBanner.innerText = "⏱️ REVIEW PHASE (1 Minute Remaining) - तपाईं उत्तरहरू परिवर्तन गर्न सक्नुहुन्छ!";
+        reviewBanner.style.display = 'block';
+
+        timerInterval = setInterval(() => {
+            if (mainTimeLeft <= 0) {
+                clearInterval(timerInterval);
+                advanceToNextSection();
+                return;
+            }
+            mainTimeLeft--;
+            renderTimerText();
+        }, 1000);
+    }
+
+    function advanceToNextSection() {
+        clearInterval(timerInterval);
+        stopAndBlockAudio();
+
+        if (currentSectionId < 3) {
+            let completedSection = currentSectionId;
+            currentSectionId++;
+            mainTimeLeft = sectionDurations[currentSectionId];
+            
+            for (let i = 0; i < examSteps.length; i++) {
+                if (examSteps[i].sectionId === currentSectionId) {
+                    currentStep = i;
+                    break;
+                }
+            }
+
+            alert(`⏰ Section ${completedSection} पूरा भयो। अब Section ${currentSectionId} सुरु हुँदैछ।`);
+
+            loadStep(currentStep);
+            startSectionTimer();
+        } else {
+            alert(`⏰ Review Phase समाप्त भयो! नतिजा तयार पारिँदैछ...`);
+            submitExam();
+        }
+    }
+
+    function submitExam() {
+        clearInterval(timerInterval);
+        stopAndBlockAudio();
+
+        let secStats = {
+            1: { total: 52, correct: 0 },
+            2: { total: 35, correct: 0 },
+            3: { total: 24, correct: 0 }
+        };
+
+        let reviewHtml = "";
+
+        examSteps.forEach(st => {
+            let subs = st.type === 'single' ? [st] : st.subQuestions;
+            subs.forEach(sub => {
+                let uAns = userAnswers[sub.qIdx];
+                let isCorr = (uAns === sub.answer);
+                if (isCorr) {
+                    secStats[st.sectionId].correct++;
+                }
+
+                reviewHtml += `
+                    <div style="background:#fafafa; border:1px solid #ddd; padding:10px; margin-bottom:8px; border-radius:5px;">
+                        <div><strong>Question ${sub.qIdx + 1}</strong></div>
+                        <div>तपाईंको उत्तर: <span style="color:${isCorr?'#2e7d32':'#d32f2f'}; font-weight:bold;">${uAns !== null ? sub.options[uAns] : 'Not Answered'}</span></div>
+                        <div>सहि उत्तर: <span style="color:#2e7d32; font-weight:bold;">${sub.options[sub.answer]}</span></div>
+                    </div>
+                `;
+            });
+        });
+
+        let langCorrect = secStats[1].correct + secStats[2].correct;
+        let langTotal = secStats[1].total + secStats[2].total;
+        let langScore = Math.round((langCorrect / langTotal) * 120);
+
+        let listCorrect = secStats[3].correct;
+        let listTotal = secStats[3].total;
+        let listScore = Math.round((listCorrect / listTotal) * 60);
+
+        let grandTotalScore = langScore + listScore;
+
+        let langPass = langScore >= 38;
+        let listPass = listScore >= 19;
+        let totalPass = grandTotalScore >= 80;
+        let isFinalPass = langPass && listPass && totalPass;
+
+        document.getElementById('examScreen').style.display = 'none';
+        document.getElementById('resultScreen').style.display = 'block';
+
+        document.getElementById('resultStudentName').innerText = loggedInStudentName;
+        document.getElementById('resultDate').innerText = new Date().toLocaleDateString();
+
+        let badgeBox = document.getElementById('resultPassBadge');
+        if (isFinalPass) {
+            badgeBox.innerHTML = `
+                <div class="eval-status-box eval-pass">
+                    🎉 PASSED - JLPT N5 CERTIFIED<br>
+                    <span style="font-size:13px; font-weight:normal; color:#333;">तपाईंले JLPT N5 को सबै मापदण्डहरू पूरा गर्नुभएको छ!</span>
+                </div>
+            `;
+        } else {
+            badgeBox.innerHTML = `
+                <div class="eval-status-box eval-fail">
+                    ❌ NOT PASSED (FAILED)<br>
+                    <span style="font-size:13px; font-weight:normal; color:#333;">पास हुनका लागि कुल ८० अंक र प्रत्येक सेक्सनको Cutoff कट्नुपर्छ。</span>
+                </div>
+            `;
+        }
+
+        document.getElementById('secScoreTbody').innerHTML = `
+            <tr>
+                <td><strong>1 & 2. Language Knowledge & Reading</strong></td>
+                <td><strong>${langScore} / 120</strong></td>
+                <td><strong style="color:${langPass?'#2e7d32':'#d32f2f'}">${langPass ? 'PASSED (≥38)' : 'FAILED (<38)'}</strong></td>
+            </tr>
+            <tr>
+                <td><strong>3. Listening (聴解)</strong></td>
+                <td><strong>${listScore} / 60</strong></td>
+                <td><strong style="color:${listPass?'#2e7d32':'#d32f2f'}">${listPass ? 'PASSED (≥19)' : 'FAILED (<19)'}</strong></td>
+            </tr>
+        `;
+
+        document.getElementById('finalTotalScore').innerText = `${grandTotalScore} / 180`;
+        document.getElementById('overallStatusText').innerHTML = `<strong style="color:${isFinalPass?'#2e7d32':'#d32f2f'}">${isFinalPass ? 'OVERALL PASS' : 'OVERALL FAIL'}</strong>`;
+        document.getElementById('reviewContainer').innerHTML = reviewHtml;
+    }
+</script>
+</body>
+</html>
